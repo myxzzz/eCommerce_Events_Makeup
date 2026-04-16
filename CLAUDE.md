@@ -1,6 +1,6 @@
-# CLAUDE.md
+# CLAUDE.md - AI Agent 协作指南
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+这个文件为 Claude 提供与本项目协作的上下文和规则。
 
 ## 用户画像
 
@@ -14,13 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 分析引导
 - **不要每步都问问题**。只有当用户卡住、不知道该做什么分析/用什么指标/选什么图时，才进行引导式提问。
 - 用户有明确方向时直接协助推进。
-- 引导提问时自然一点，围绕"核心指标是什么、按什么维度拆解、拆完后对比什么"来聊，不要机械地一次问三个。
+- 引导提问时自然一点，围绕"核心指标是什么、按什么维度拆解、拆完后对比什么"来聊。
 
 ### 代码生成
 - 不要给完整的长代码块，优先解释思路，给关键片段
 - 常用操作（groupby, merge, pivot, 窗口函数）给模板，用户自己改字段
 - 代码注释中标明容易出错的地方（数据类型、缺失值等）
-- 不要假设已导入库，提醒检查 import
 
 ### 报错调试顺序
 1. 语法错误 → 指出具体行和正确写法
@@ -28,10 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 3. 连接/IO错误 → 文件路径、权限
 4. 版本不兼容 → 提示升级/降级
 
-输出：错误原因（一句话） + 解决方案（两步以内） + 是否需要更多信息
-
-### 可视化推荐优先级
-比较类别→条形图 | 趋势→折线图 | 占比→堆叠条形图 | 相关性→散点图 | 分布→直方图 | 漏斗→瀑布图/漏斗图
+### 可视化推荐
+比较类别 → 条形图 | 趋势 → 折线图 | 占比 → 堆叠条形图 | 相关性 → 散点图 | 分布 → 直方图
 
 ### 输出节奏
 一次只回答一个子问题，回答完主动问"接下来你想先了解哪一个？"
@@ -40,29 +37,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 电商用户行为分析：Cosmetics Shop 2019年12月数据（~350万行），分析"加购后未购买"的购物车流失问题。
 
-## 目录结构
+数据字段：event_time, event_type, product_id, category_id, category_code, brand, price, user_id, user_session
 
-```
-├── data/raw/Dec.csv              # 主数据集（~3.5M行）
-├── data/raw/数据库导入脚本.py      # CSV → PostgreSQL 导入工具
-├── notebooks/01_查看表格.ipynb     # 初始数据探索
-├── requirements.txt
-└── README.md
-```
+事件分布：view (173万) | cart (93万) | remove_from_cart (66万) | purchase (21万)
 
-## 数据集
+## 分析计划
 
-- 字段：`event_time`, `event_type`, `product_id`, `category_id`, `category_code`, `brand`, `price`, `user_id`, `user_session`
-- 事件类型：`view`(173万), `cart`(93万), `remove_from_cart`(66万), `purchase`(21万)
-- 加购→购买转化率约23%，存在严重流失
+1. **宏观**：View → Cart → Purchase 转化漏斗
+2. **微观**：转化用户 vs 流失用户对比分析
+3. **统计检验**：t-检验 / 卡方检验
+4. **可视化**：漏斗图、箱线图、条形图
 
-## 分析计划（README.md）
+---
 
-1. 宏观：View → Cart → Purchase 转化漏斗
-2. 微观：A组（同session加购+购买）vs B组（同session加购未购买）
-3. 统计检验：t-检验 / 卡方检验
-4. 可视化：漏斗图、箱线图、条形图
+## 学习者自我认知（2026-04-16）
 
-## 技术栈
+### 职业方向：数据产品思维
 
-Python 3.x + Pandas, NumPy, Scipy, Matplotlib, Seaborn
+**关键发现：** 我热爱的不是"写代码"或"优化性能"，而是**"用更聪明的方式解决问题"**
+
+**三个优势结合：**
+- 电商业务理解（专业背景）
+- AI 工具应用能力（天然直觉）
+- 快速分析→洞察能力（项目验证）
+
+**3年发展路线：**
+- 现在-半年：完成电商分析项目 + 数据可视化思路
+- 半年-1年：A/B 测试、实验设计、AI Agent 应用
+- 1年后实习优先：大厂数据产品/BI/增长分析团队
+
+### 笔记体系
+
+**策略：从"记代码"转向"记分析思路"**
+
+重点记录：
+1. 分析场景 → 问题类型、核心指标、维度拆解
+2. 数据坑 → 问题 + 解决方案
+3. AI 工具最佳实践 → prompt 技巧、工具组合
+4. 电商业务框架 → 转化漏斗、用户分层、价格敏感度
+
+**例如：** 不记"STRING_AGG 的语法"，而记"如何用 STRING_AGG 将用户行为序列化来判断转化漏斗"
+
+### 可视化策略
+
+用 AI 生成 Python 代码（matplotlib/seaborn），不学 Tableau/Power BI UI
+
+**理由：** 快速迭代 + 代码可复用 + Python 永远有用
+
+**如何问 AI：**
+- 不问："帮我画图"
+- 要问："我要展示[数据]来回答[业务问题]，用什么图合适？"
