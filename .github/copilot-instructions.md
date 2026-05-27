@@ -85,6 +85,9 @@
 ## 6.2 当前项目上下文备忘（电商转化率分析项目）
 
 为了避免重复解释，请在回答时记住以下项目的核心结论与前提：
+- **最原始表数据结构**：参考 `data\raw\原始数据前2行.csv`，主要字段包括 `event_time`, `event_type`, `product_id`, `category_id`, `category_code`, `brand`, `price`, `user_id`, `user_session`。
+- **本地数据库信息**： conn = psycopg2.connect(host="localhost",database="postgres",user="postgres",password="",port=5432)，最完整的数据表是 `makeup_consumer_events.dec`，你可以基于这个表进行 SQL 查询分析。
+- 下面是基于上述数据结构主要是对`event_type`字段，按照用户行为路径划分的三个核心用户群体（A、B、C 组）：
 - **A组**：加购物车且购买成功。
 - **B组**：加了购物车一直没有买（被动流失）。
 - **C组**：加了购物车最后主动移除购物车。
