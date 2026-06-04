@@ -74,6 +74,29 @@
   - 分析路线图：漏斗发现流失 → 排除价格 → 锁定品牌 → 时间交叉验证 → 控制价格再验证
   - 新增两张可视化：品牌 ABC 堆叠柱状图 + 品牌流失风险比排行榜（均排除 Unknown Brand）
   - 汇总五大发现 + 四条业务建议 + 局限性声明
+  - 最后一个 cell 可以自动导出 `reports/final_report.md`
+
+- **更新 README.md**：
+  - 清除了"待决策项"和"分析计划"等过时内容
+  - 补充了完整的分析进展（5 个发现）
+  - 新增"核心结论"总结表、"业务建议"、"项目结构"、"局限性"板块
+
+- **项目状态**：阶段性完结。后续可在新项目中学习新方法（RFM、cohort、留存分析等）。
+
+## 2026-06-02
+
+- **新阶段：Logistic Regression 建模分析**
+- 使用 `data/interim/03_user_behavior_groups.csv` 作为建模数据源
+- 该表说明：原始事件表按 `user_session × product_id` 维度去重聚合，新增 `group_type` 列（A=购买、B=被动流失、C=主动流失），共约 115 万行
+- 字段：`user_session, product_id, event_type, price, user_id, brand, category_code, category_id, event_time, group_type`
+- 计划用逻辑回归预测加购行为是否转化购买，量化各因素的影响权重
+
+
+
+- **项目收尾**：创建了 `notebooks/07_项目总结与业务建议.ipynb`，将 6 个分析 notebook 的核心结论串成完整的故事线。
+  - 分析路线图：漏斗发现流失 → 排除价格 → 锁定品牌 → 时间交叉验证 → 控制价格再验证
+  - 新增两张可视化：品牌 ABC 堆叠柱状图 + 品牌流失风险比排行榜（均排除 Unknown Brand）
+  - 汇总五大发现 + 四条业务建议 + 局限性声明
   - 最后一个 cell 可自动导出 `reports/final_report.md`
 
 - **更新 README.md**：
