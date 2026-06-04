@@ -83,6 +83,28 @@
 
 - **项目状态**：阶段性完结。后续可在新项目中学习新方法（RFM、cohort、留存分析等）。
 
+## 2026-06-04
+
+- **学习 08 Logistic Regression 建模脚本**
+  - 梳理了 sklearn 逻辑回归的完整流程：构造目标变量 `y_purchased` → 选择特征 `X` → One-Hot 编码 → 训练/测试集拆分 → 数值特征标准化 → `LogisticRegression.fit()` 训练 → `predict` / `predict_proba` 预测 → Accuracy、ROC-AUC、混淆矩阵评估 → `coef_` 和 OR 解释特征影响。
+  - 明确理解：逻辑回归虽然输出 0/1 分类，但底层先计算“购买概率”；`predict_proba()` 输出概率，`predict()` 按默认阈值 0.5 转成分类结果。
+  - 明确理解 `drop_first=True`：One-Hot 编码时少保留一个类别列，不丢信息，还能减少完全共线性；被删除的类别作为参照组，其他类别系数表示“相对参照组”的影响。
+  - 理解 Session 特征来源：`08_session_features.csv` 本质上是从原始事件明细按 `user_session` 聚合得到的 Session 画像表，例如 `session_view`、`session_cart`、`session_remove_from_cart`、`session_unique_products`、`session_avg_price`、`session_max_price`；`session_duration_min` 可由同一 session 的 `event_time.max() - event_time.min()` 计算。
+
+- **补充模型结果沉淀**
+  - 在 `notebooks/08_logistic_regression建模分析.ipynb` 的系数解释 cell 后新增“保存模型结果到硬盘”cell。
+  - 运行该 cell 后会导出：
+    - `reports/08_logistic_regression_coef.csv`：完整特征系数、OR（优势比）、方向（促进购买/促进流失）
+    - `reports/08_logistic_regression_metrics.csv`：Accuracy、ROC-AUC、混淆矩阵四格、购买/流失 precision、recall、f1
+  - 这样以后不用只依赖 notebook 的 print 输出，可以直接用 CSV 复查、筛选和写报告。
+
+- **更新 README.md**
+  - 新增第 6 个分析洞察：“逻辑回归建模：Session 行为是最强预测信号”。
+  - 补充模型表现：加入 Session 特征后测试集 Accuracy = 0.7986，ROC-AUC = 0.8428，明显优于仅使用商品属性时的 AUC = 0.5707。
+  - 更新项目结构：加入 `08_logistic_regression建模分析.ipynb`、`08_session_features.csv`、`08_logistic_regression_results.png`、模型系数和评估摘要 CSV。
+  - 更新技术栈：加入 Scikit-learn 和 Logistic Regression。
+  - 更新局限性：逻辑回归结果用于相关性解释，不等同于严格因果推断；部分 Session 特征与 C 组定义接近，适合预测流失状态，若要做提前预警，需要只使用预测时点之前的行为特征。
+
 ## 2026-06-02
 
 - **新阶段：Logistic Regression 建模分析**
@@ -105,5 +127,4 @@
   - 新增”核心结论”总结表、”业务建议”、”项目结构”、”局限性”板块
 
 - **项目状态**：阶段性完结。后续可在新项目中学习新方法（RFM、cohort、留存分析等）。
-
 

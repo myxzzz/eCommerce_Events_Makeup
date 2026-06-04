@@ -74,6 +74,15 @@
 - **分析结论**：控制价格后，`masura` 在同一价格带内的流失率稳定是 `runail` 的 **1.5 倍**。高溢价区（10-15元）流失风险比飙升至 **6.1**。
 - **业务洞察**：价格相同，命运不同——问题出在品牌的产品力、评价、平替竞争等综合因素上。
 
+### 6. 逻辑回归建模：Session 行为是最强预测信号
+
+![逻辑回归结果](reports/08_logistic_regression_results.png)
+
+- **建模目标**：使用 Logistic Regression 预测“用户加购后是否购买”，将 A 组（购买）记为 1，C 组（主动流失）记为 0，排除结果不明确的 B 组。
+- **模型表现**：加入 Session 行为特征后，测试集 Accuracy = **0.7986**，ROC-AUC = **0.8428**，明显优于仅使用商品属性时的 AUC = 0.5707。
+- **关键发现**：购物车移除次数、移除比例、浏览/加购行为等 Session 特征，比单纯的品牌、价格、时间更能预测最终是否购买。
+- **结果沉淀**：模型系数与评估摘要已设计为可导出 CSV，便于后续复查和写报告。
+
 ---
 
 ## 📋 核心结论
@@ -85,6 +94,7 @@
 | 3 | 品牌是根本差异 | ABC品牌分组分析 | ✅ 锁定品牌 |
 | 4 | 时间是影响因素但非根因 | 品牌×时间交叉分析 | ⚠️ 时间有影响，但非主因 |
 | 5 | 同价不同命，品牌护城河存在 | 控制价格后的品牌对比 | ✅ 确认品牌本身特征 |
+| 6 | Session 行为是最强预测信号 | Logistic Regression | ✅ 量化影响权重 |
 
 ## 💡 业务建议
 
@@ -105,7 +115,8 @@ eCommerce_Events_History/
 │       ├── 03_user_behavior_groups.csv   # ABC分组数据
 │       ├── 04_abc_brand_analysis.csv     # 品牌ABC分析
 │       ├── 05_brand_time_cross_analysis.csv
-│       └── 06_price_brand_group_analysis.csv
+│       ├── 06_price_brand_group_analysis.csv
+│       └── 08_session_features.csv       # Session维度建模特征
 ├── notebooks/
 │   ├── 01_查看表格.ipynb
 │   ├── 02_浏览加入购物车购买转化.ipynb
@@ -113,7 +124,8 @@ eCommerce_Events_History/
 │   ├── 04_abc品牌维度分析.ipynb
 │   ├── 05_品牌时间交叉分析me.ipynb
 │   ├── 06_r品牌与m品牌价格品类流失分析.ipynb
-│   └── 07_项目总结与业务建议.ipynb       # 总结报告
+│   ├── 07_项目总结与业务建议.ipynb       # 总结报告
+│   └── 08_logistic_regression建模分析.ipynb
 ├── reports/              # 图表与报告
 │   ├── 02_user_funnel.png
 │   ├── 03_price_metrics_comparison.png
@@ -123,6 +135,9 @@ eCommerce_Events_History/
 │   ├── 06_price_brand_group_analysis.png
 │   ├── 07_brand_abc_stacked_bar.png
 │   ├── 07_brand_risk_ratio.png
+│   ├── 08_logistic_regression_results.png
+│   ├── 08_logistic_regression_coef.csv       # 运行08 notebook后导出
+│   ├── 08_logistic_regression_metrics.csv    # 运行08 notebook后导出
 │   └── final_report.md
 ├── README.md
 ├── worklog.md
@@ -134,8 +149,8 @@ eCommerce_Events_History/
 ## 🛠️ 技术栈
 
 - **语言**：Python 3.x
-- **库**：Pandas, NumPy, Scipy, Matplotlib/Seaborn, Plotly
-- **方法**：描述统计 + 交叉分析 + 排除法
+- **库**：Pandas, NumPy, Scipy, Matplotlib/Seaborn, Plotly, Scikit-learn
+- **方法**：描述统计 + 交叉分析 + 排除法 + Logistic Regression
 
 ---
 
@@ -144,7 +159,8 @@ eCommerce_Events_History/
 1. 数据仅覆盖 2019 年 12 月一个月，无法观察长期趋势
 2. 品类单一（化妆品），结论不一定适用于其他品类
 3. 缺少用户画像（年龄/性别/地域）和评价数据
-4. 未对品牌差异做统计显著性检验
+4. 逻辑回归结果主要用于相关性解释，不等同于严格因果推断
+5. 部分 Session 特征（如移除次数、移除比例）与 C 组定义接近，适合预测流失状态；若要做“提前预警”，需要只使用预测时点之前已经发生的行为特征
 
 ---
 
