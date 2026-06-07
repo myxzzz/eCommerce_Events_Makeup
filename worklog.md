@@ -83,6 +83,7 @@
 
 - **项目状态**：阶段性完结。后续可在新项目中学习新方法（RFM、cohort、留存分析等）。
 
+
 ## 2026-06-04
 
 - **学习 08 Logistic Regression 建模脚本**
@@ -127,4 +128,50 @@
   - 新增”核心结论”总结表、”业务建议”、”项目结构”、”局限性”板块
 
 - **项目状态**：阶段性完结。后续可在新项目中学习新方法（RFM、cohort、留存分析等）。
+
+## 2026-06-07
+
+- **重新审视 Logistic Regression 的字段选择问题**
+  - 明确当前学习目标不是单纯追求模型分数，而是提升数据分析中的业务理解、字段解释和与 AI 协作的能力。
+  - 认识到建模里最难的部分不是 `LogisticRegression()` 本身，而是字段设计：字段是否预测时点前可用、是否接近目标定义、是否有业务含义、字段粒度是否和主表一致。
+
+- **确认 `08_session_features.csv` 的字段口径**
+  - 通过抽样对账原始 `data/raw/Dec.csv`，确认 `data/interim/08_session_features.csv` 是从原始事件明细按 `user_session` 聚合得到的整段 Session 画像表，而不是从 `03_user_behavior_groups.csv` 聚合出来的。
+  - 字段口径确认：
+    - `session_cart`：整段 session 内 `event_type == cart` 的次数
+    - `session_remove_from_cart`：整段 session 内 `event_type == remove_from_cart` 的次数
+    - `session_view`：整段 session 内 `event_type == view` 的次数
+    - `session_duration_min`：同一 session 的 `event_time.max() - event_time.min()`，单位分钟
+    - `session_unique_products`：整段 session 出现过的不同 `product_id` 数
+    - `session_avg_price`：整段 session 所有事件行的平均 `price`
+    - `session_max_price`：整段 session 出现过的最高 `price`
+    - `user_total_sessions`：该用户整月不同 `user_session` 数
+  - 关键反思：这些字段统计的是“整段 session”，不是“首次加购前”。因此它们更适合作为事后画像/事后识别特征，不适合直接解释为提前预测字段。
+
+- **发现目标泄露风险**
+  - 在 `08_logistic_regression建模分析 copy.ipynb` 中删除 `session_remove_from_cart` 和 `session_cart_remove_ratio` 后，模型表现从原先包含全量 session 特征时的 ROC-AUC 约 0.8428 降至 0.6245。
+  - 该实验说明原模型的强预测力很大程度来自移除购物车相关字段，而这些字段与 C 组“主动移出购物车”的目标定义非常接近，存在明显目标泄露/透题风险。
+  - 当前结论：包含 remove 相关字段的模型适合学习建模流程和做事后识别；如果要做提前预测，需要重新构造预测时点之前的特征。
+
+- **明确下一版特征设计方向**
+  - 不推翻旧表，保留 `08_session_features.csv` 作为“整段 session 事后画像”。
+  - 后续可新建一张“首次加购前 session 特征表”，预测时点定义为每个 `user_session` 的第一个 `cart` 事件。
+  - 第一版候选字段只做简单、可解释的加购前特征：
+    - `pre_cart_has_view`
+    - `pre_cart_view_count`
+    - `pre_cart_unique_products`
+    - `pre_cart_unique_brands`
+    - `pre_cart_unique_categories`
+    - `pre_cart_avg_price`
+    - `pre_cart_max_price`
+    - `minutes_to_first_cart`
+  - 如果某个 session 没有 view 直接 cart，则加购前浏览类字段记为 0，并用 `pre_cart_has_view` 标记；这类 session 不应删除，因为它可能代表目标明确或回购用户。
+
+- **理解字段粒度问题**
+  - 当前建模主表粒度是 `user_session × product_id`，即“某个 session 里的某个商品结果”。
+  - 新设计的 pre-cart 特征是 `user_session` 级别，合并回主表后，同一个 session 下的多个商品记录会共享同一组 pre-cart 特征。
+  - 解释模型时必须区分粒度：
+    - `brand`、`price`、`category_id` 是商品级字段，可以解释商品/品牌/价格差异
+    - `pre_cart_view_count`、`minutes_to_first_cart` 等是 session 级字段，只能解释用户当次购物状态，不能说成某个商品本身的原因
+
 
