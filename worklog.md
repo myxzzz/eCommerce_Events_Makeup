@@ -174,4 +174,42 @@
     - `brand`、`price`、`category_id` 是商品级字段，可以解释商品/品牌/价格差异
     - `pre_cart_view_count`、`minutes_to_first_cart` 等是 session 级字段，只能解释用户当次购物状态，不能说成某个商品本身的原因
 
+## 2026-06-09
+
+- **在 notebook 09 中实现首次加购前 Session 特征工程（第三点五步）**
+  - 使用 psycopg2 从本地数据库 `makeup_consumer_events.dec` 读取原始事件明细 `df_raw`
+  - 完整实现了伪代码中描述的 pre-cart 特征生成流程：
+    1. 按 `user_session` 找首次加购时间 `first_cart_time`（Series，index = user_session）
+    2. 用 `map` 把 `first_cart_time` 挂回 `df_raw`（比 merge 更轻量，前提是 index 对齐）
+    3. 篮选 `event_time < first_cart_time` 的事件，只保留加购前行为
+    4. 在加购前事件中只取 `event_type == 'view'`，按 session 聚合生成 8 个特征
+    5. 用 `all_cart_sessions` 构建骨架 DataFrame，确保无浏览直接加购的 session 不会丢失（left merge + fillna(0)）
+    6. 计算 `minutes_to_first_cart`（session 开始 → 首次加购的分钟数）
+  - 特征口径明确：所有聚合字段只基于首次加购前的 view 事件，不含 remove_from_cart 等后续行为
+  - 特征表已保存至 `data/interim/09_pre_cart_features.csv`
+
+- **用 pre-cart 特征替换原 session 特征，重新建模**
+  - 将 `09_pre_cart_features.csv` 合并回建模主表 `df`（按 `user_session` left merge）
+  - 模型特征：`brand`（One-Hot）+ `log_price` + `category_id`（One-Hot）+ 8 个 pre-cart 特征
+  - **模型结果（threshold = 0.5）**：
+    - Accuracy: 0.5370
+    - ROC-AUC: 0.5773（之前无 session 特征时 AUC = 0.5707，原整段 session 特征时 AUC = 0.8428）
+    - 流失(0) precision=0.72, recall=0.50；购买(1) precision=0.38, recall=0.60
+    - 混淆矩阵：实际流失 42,766 / 41,998，实际购买 16,842 / 25,467
+  - **结果解读**：
+    - AUC 从 0.5707 微升到 0.5773，说明 pre-cart session 特征比纯商品属性稍好，但提升很小
+    - 相比原整段 session 特征的 0.8428 大幅下降，验证了之前的目标泄露判断：原模型的高分主要靠 remove_from_cart 等事后特征"偷看答案"
+    - 剔除泄露后，模型的真实预测力有限——加购前的 session 级浏览行为（看了多少商品、浏览了多久）对预测是否购买的帮助不大
+    - 这引出一个关键问题：session 级特征粒度太粗，同一个 session 下的多个商品共享同一组特征，无法区分"我认真看了这个商品才加购"和"我随便加购了没看过"
+
+- **明日改进方向 A：加入首次加购商品相关特征（最值得做）**
+  - 核心思路：从 session 粒度下沉到"首次加购的那个商品"粒度
+  - 围绕首次 cart 的 `product_id` 构造以下特征：
+    - `first_cart_product_view_count_before_cart`：该商品在首次加购前被 view 过的次数
+    - `first_cart_product_has_view_before_cart`：该商品在加购前是否被看过（0/1）
+    - `first_cart_product_last_view_to_cart_min`：该商品最后一次 view → 首次 cart 的时间间隔（分钟）
+    - `first_cart_product_brand`：首次加购商品的品牌（可直接从 df_raw 取）
+    - `first_cart_product_price`：首次加购商品的价格（可直接从 df_raw 取）
+  - 业务含义：用户第一次加购的那个商品，在加购前是否被认真看过？这比 session 总浏览数更贴近目标商品，也更细粒度——同一 session 下不同商品会有不同的 first_cart_product 特征
+
 
