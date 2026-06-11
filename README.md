@@ -104,7 +104,8 @@
 | 3 | 品牌是根本差异 | ABC品牌分组分析 | ✅ 锁定品牌 |
 | 4 | 时间是影响因素但非根因 | 品牌×时间交叉分析 | ⚠️ 时间有影响，但非主因 |
 | 5 | 同价不同命，品牌护城河存在 | 控制价格后的品牌对比 | ✅ 确认品牌本身特征 |
-| 6 | Session 行为是最强预测信号 | Logistic Regression | ✅ 量化影响权重 |
+| 6 | Session 行为是最强预测信号（含目标泄露） | Logistic Regression | ✅ 量化影响权重，但存在泄露 |
+| 7 | 剔除泄露后真实 AUC 仅 0.5773，session 级特征帮助有限 | Pre-cart 特征复测 | ⚠️ 粒度太粗，需下沉到商品级 |
 
 ## 💡 业务建议
 
@@ -126,7 +127,8 @@ eCommerce_Events_History/
 │       ├── 04_abc_brand_analysis.csv     # 品牌ABC分析
 │       ├── 05_brand_time_cross_analysis.csv
 │       ├── 06_price_brand_group_analysis.csv
-│       └── 08_session_features.csv       # Session维度建模特征
+│       ├── 08_session_features.csv       # Session维度建模特征（含泄露）
+│       └── 09_pre_cart_features.csv      # 首次加购前Session特征（剔除泄露）
 ├── notebooks/
 │   ├── 01_查看表格.ipynb
 │   ├── 02_浏览加入购物车购买转化.ipynb
@@ -135,7 +137,8 @@ eCommerce_Events_History/
 │   ├── 05_品牌时间交叉分析me.ipynb
 │   ├── 06_r品牌与m品牌价格品类流失分析.ipynb
 │   ├── 07_项目总结与业务建议.ipynb       # 总结报告
-│   └── 08_logistic_regression建模分析.ipynb
+│   ├── 08_logistic_regression建模分析.ipynb
+│   └── 09_logistic_regression建模复习.ipynb  # 复测：剔除泄露+pre-cart特征
 ├── reports/              # 图表与报告
 │   ├── 02_user_funnel.png
 │   ├── 03_price_metrics_comparison.png
@@ -170,7 +173,8 @@ eCommerce_Events_History/
 2. 品类单一（化妆品），结论不一定适用于其他品类
 3. 缺少用户画像（年龄/性别/地域）和评价数据
 4. 逻辑回归结果主要用于相关性解释，不等同于严格因果推断
-5. 部分 Session 特征（如移除次数、移除比例）与 C 组定义接近，适合预测流失状态；若要做“提前预警”，需要只使用预测时点之前已经发生的行为特征
+5. 原模型（AUC 0.8428）存在目标泄露：`session_remove_from_cart` 等字段与 C 组定义重叠，删除泄露字段后 AUC 降至 0.6245
+6. 剔除泄露后使用 pre-cart session 特征建模，AUC 仅 0.5773（比纯商品属性 0.5707 微升），说明 session 级浏览行为对预测帮助有限，需下沉到商品粒度
 
 ---
 

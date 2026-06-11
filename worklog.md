@@ -212,4 +212,18 @@
     - `first_cart_product_price`：首次加购商品的价格（可直接从 df_raw 取）
   - 业务含义：用户第一次加购的那个商品，在加购前是否被认真看过？这比 session 总浏览数更贴近目标商品，也更细粒度——同一 session 下不同商品会有不同的 first_cart_product 特征
 
+---
 
+## 6/11 — 09 逻辑回归系数解读
+
+- 对 09 模型（剔除泄露后，使用品牌 + 价格 + 时间 + pre-cart session 特征）做逻辑回归，分析各变量系数
+- **最重要的结论**：
+  - 品牌变量仍然是最清晰、最有解释力的因素
+  - pre-cart session 特征方向有一些业务含义，但影响很弱
+  - 价格和时间仍然是轻度负向因素
+
+- **下一步方向：品牌四象限矩阵**
+  - 每个品牌聚合：A_count、C_count、total_count、purchase_rate、loss_rate、risk_ratio、brand_share
+  - 按 brand_share 高低 × loss_rate/risk_ratio 高低分成四类
+  - 对应实际业务场景：品牌优先级排序、货盘优化、流量分配、加购挽回策略、价格策略
+  - 项目下一阶段标题：**品牌经营策略分析：从流失识别到品牌分层运营**
