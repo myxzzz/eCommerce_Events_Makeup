@@ -1,3 +1,8 @@
+-- Build the strict 48-hour observation-window grouped table.
+--
+-- This is a copy-friendly version of build_11_user_behavior_groups_window_48h.sql
+-- with a numbered filename for the SQL learning sequence.
+
 DROP TABLE IF EXISTS makeup_consumer_events."11_user_behavior_groups_window_48h";
 
 CREATE TABLE makeup_consumer_events."11_user_behavior_groups_window_48h" AS
@@ -75,3 +80,13 @@ CREATE INDEX IF NOT EXISTS idx_11_window_48h_brand_group
 
 CREATE INDEX IF NOT EXISTS idx_11_window_48h_first_cart_time
     ON makeup_consumer_events."11_user_behavior_groups_window_48h" (first_cart_time);
+
+-- Quick check.
+SELECT
+    group_type,
+    COUNT(*) AS row_count,
+    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS share_pct
+FROM makeup_consumer_events."11_user_behavior_groups_window_48h"
+GROUP BY group_type
+ORDER BY group_type;
+

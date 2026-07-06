@@ -408,7 +408,15 @@ eCommerce_Events_History/
 │   ├── compare_original_vs_windowed_groups.py
 │   └── build_brand_quadrant_matrix.py
 ├── sql/
-│   └── build_11_user_behavior_groups_window_48h.sql
+│   ├── 00_basic_checks.sql
+│   ├── 01_event_funnel.sql
+│   ├── 02_build_03_user_behavior_groups.sql
+│   ├── 03_price_time_distribution.sql
+│   ├── 04_brand_abc_analysis.sql
+│   ├── 05_brand_time_price_checks.sql
+│   ├── 06_brand_quadrant_matrix.sql
+│   ├── 07_build_11_user_behavior_groups_window_48h.sql
+│   └── README.md
 ├── README.md
 ├── worklog.md
 └── requirements.txt

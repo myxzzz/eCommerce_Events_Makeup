@@ -258,7 +258,7 @@
 
 - **新增产物**：
   - `scripts/build_windowed_user_behavior_groups.py`：从原始 `Dec.csv` 构造 48 小时窗口 A/B/C 分组表
-  - `sql/build_11_user_behavior_groups_window_48h.sql`：同一口径的 PostgreSQL 建表 SQL
+  - `sql/07_build_11_user_behavior_groups_window_48h.sql`：同一口径的 PostgreSQL 建表 SQL
   - `scripts/compare_original_vs_windowed_groups.py`：质检新表，并对比旧口径与 48 小时口径
   - `scripts/build_brand_quadrant_matrix.py`：基于新口径输出中位数阈值版和固定风险阈值版品牌四象限
 
@@ -283,3 +283,23 @@
   - 固定阈值下，`runail` / `irisk` 仍属于核心健康品牌，`masura` / `grattol` / `ingarden` / `pole` / `bluesky` 仍属于重点治理品牌
 
 - **当前判断**：原来的品牌差异结论没有被 48 小时窗口口径推翻，但 README 和后续讲述需要明确：旧口径更偏全月事件结果，新口径更适合解释“首次加购后 48 小时内”的短期转化/主动流失。
+
+## 2026-07-06 — SQL 脚本整理
+
+- **目标**：把项目中散落在 notebook 和 Python 脚本里的 SQL 查询拆成独立 `.sql` 文件，方便直接在 PostgreSQL 客户端中学习和运行，不依赖 `psycopg2` 连接数据库。
+
+- **新增 SQL 文件**：
+  - `sql/00_basic_checks.sql`：查看原始表、行数、时间范围、事件类型分布、用户/商品/品牌去重数
+  - `sql/01_event_funnel.sql`：事件漏斗和 `user_id × product_id` 路径漏斗
+  - `sql/02_build_03_user_behavior_groups.sql`：用 SQL 复刻旧版 A/B/C 分组表
+  - `sql/03_price_time_distribution.sql`：A/B/C 价格统计和小时分布
+  - `sql/04_brand_abc_analysis.sql`：品牌在 A/B/C 组中的占比和宽表对比
+  - `sql/05_brand_time_price_checks.sql`：`runail` vs `masura` 的时间段和价格带交叉分析
+  - `sql/06_brand_quadrant_matrix.sql`：品牌四象限指标表，同时输出中位数阈值和固定 `C/A >= 1.5` 阈值版本
+  - `sql/07_build_11_user_behavior_groups_window_48h.sql`：48 小时固定观察窗口分组表
+  - `sql/README.md`：说明每个 SQL 文件用途、学习顺序和运行方式
+
+- **当前理解**：
+  - 日常 SQL 分析通常先做基础查看，再做探索聚合，最后把稳定口径建成中间表
+  - SQL 更适合完成取数、聚合、建表和口径固化；Python/notebook 更适合画图、建模和解释分析过程
+  - 这个项目后续可以优先用 SQL 文件学习 `SELECT`、`GROUP BY`、`CASE WHEN`、窗口函数、CTE、`CREATE TABLE AS` 和索引
