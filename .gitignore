@@ -1,20 +1,40 @@
 # ==================== 数据文件 ====================
-# 原始数据（通常极大，不应提交）
-data/raw/*.csv
-data/raw/*.xlsx
-data/raw/*.parquet
-data/raw/*.json
-# 中间数据和处理后的数据（由代码生成，不需要版本控制）
+# 原始数据和中间结果体积大、可由脚本或数据库重建，不进入 Git。
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/*.py
 data/interim/*
 !data/interim/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+
+# 正式聚合结果可提交；逐样本队列明细超过 GitHub 单文件限制，运行 SQL 后本地生成。
+reports/data_exports/cohort_detail_48h.csv
+
+# ==================== 正式交付的本地 QA 产物 ====================
+# 正式 Excel 本身保留；渲染预览和内部检查快照可重新生成。
+outputs/formal_delivery/qa_previews/
+outputs/formal_delivery/*.inspect.ndjson
+
+# ==================== Node / JavaScript ====================
+node_modules/
+**/node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # ==================== Python ====================
-# 缓存文件
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
 # 虚拟环境 / Conda
 .venv/
 env/
@@ -22,5 +42,25 @@ venv/
 *.egg-info/
 dist/
 build/
+
 # Jupyter
 .ipynb_checkpoints/
+
+# ==================== 凭据与本机配置 ====================
+.env
+.env.*
+!.env.example
+.claude/
+.agents/
+.codex/
+.vscode/settings.json
+
+# ==================== Office / 操作系统临时文件 ====================
+~$*.xlsx
+~$*.xlsm
+~$*.docx
+~$*.pptx
+Thumbs.db
+.DS_Store
+*.tmp
+*.bak

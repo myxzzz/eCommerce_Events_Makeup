@@ -1,0 +1,85 @@
+-- 表：KPI_Summary
+完整48小时样本数 =
+MAX ( KPI_Summary[cohort_count] )
+
+48小时购买率 =
+DIVIDE ( MAX ( KPI_Summary[purchase_count] ), MAX ( KPI_Summary[cohort_count] ) )
+
+48小时未明确处置率 =
+DIVIDE ( MAX ( KPI_Summary[unresolved_count] ), MAX ( KPI_Summary[cohort_count] ) )
+
+48小时移除率 =
+DIVIDE ( MAX ( KPI_Summary[remove_count] ), MAX ( KPI_Summary[cohort_count] ) )
+
+明确结果购买率 =
+DIVIDE (
+    MAX ( KPI_Summary[purchase_count] ),
+    MAX ( KPI_Summary[purchase_count] ) + MAX ( KPI_Summary[remove_count] )
+)
+
+总体移除购买比 =
+DIVIDE ( MAX ( KPI_Summary[remove_count] ), MAX ( KPI_Summary[purchase_count] ) )
+
+已知品牌覆盖率 =
+DIVIDE ( MAX ( KPI_Summary[known_brand_rows] ), MAX ( KPI_Summary[cohort_count] ) )
+
+-- 表：Brand_Metrics；以下度量值在品牌筛选上下文中使用。
+品牌完整样本数 =
+SUM ( Brand_Metrics[brand_cohort_count] )
+
+品牌购买数 =
+SUM ( Brand_Metrics[purchase_count] )
+
+品牌未明确处置数 =
+SUM ( Brand_Metrics[unresolved_count] )
+
+品牌移除数 =
+SUM ( Brand_Metrics[remove_count] )
+
+品牌购买率 =
+DIVIDE ( [品牌购买数], [品牌完整样本数] )
+
+品牌未明确处置率 =
+DIVIDE ( [品牌未明确处置数], [品牌完整样本数] )
+
+品牌移除率 =
+DIVIDE ( [品牌移除数], [品牌完整样本数] )
+
+品牌明确结果购买率 =
+DIVIDE ( [品牌购买数], [品牌购买数] + [品牌移除数] )
+
+品牌移除购买比 =
+DIVIDE ( [品牌移除数], [品牌购买数] )
+
+明确结果样本数 =
+[品牌购买数] + [品牌移除数]
+
+-- 表：Window_Sensitivity
+窗口共同样本数 =
+MAX ( Window_Sensitivity[common_cohort_count] )
+
+窗口购买率 =
+DIVIDE (
+    SUM ( Window_Sensitivity[purchase_count] ),
+    SUM ( Window_Sensitivity[common_cohort_count] )
+)
+
+窗口未明确处置率 =
+DIVIDE (
+    SUM ( Window_Sensitivity[unresolved_count] ),
+    SUM ( Window_Sensitivity[common_cohort_count] )
+)
+
+窗口移除率 =
+DIVIDE (
+    SUM ( Window_Sensitivity[remove_count] ),
+    SUM ( Window_Sensitivity[common_cohort_count] )
+)
+
+24到72小时购买率变化百分点 =
+VAR Rate24 =
+    CALCULATE ( [窗口购买率], Window_Sensitivity[window_hours] = 24 )
+VAR Rate72 =
+    CALCULATE ( [窗口购买率], Window_Sensitivity[window_hours] = 72 )
+RETURN
+    ( Rate72 - Rate24 ) * 100

@@ -1,0 +1,2 @@
+﻿source_row_count,source_min_time_utc,source_max_time_utc,covered_utc_dates,distinct_users,distinct_sessions,distinct_products,distinct_known_brands,missing_user_id_rows,missing_session_rows,missing_product_id_rows,missing_brand_rows,missing_category_code_rows,missing_category_id_rows,missing_price_rows,nonpositive_price_rows,unexpected_event_type_rows,exact_duplicate_excess_rows
+3533286,2019-12-01 00:00:00+00:00,2019-12-31 23:59:57+00:00,31,370154,839813,44624,252,0,779,0,1510289,3474821,0,0,7607,0,183860

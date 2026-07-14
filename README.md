@@ -1,14 +1,141 @@
-# 电商购物车流失分析：从“为什么不买”到品牌运营策略
+# 电商首次加购后 48 小时结果与品牌运营优先级
 
 ## Executive Summary
 
-- **这个项目研究的问题是：用户已经加购了，为什么最后没有购买？** 我把问题拆成价格、品牌、时间、行为特征几个可能解释，逐步验证哪些因素真正能解释购物车流失。
-- **较稳定的发现是：价格不是最强解释，品牌维度的差异更明显。** A 组购买用户、B 组被动流失用户、C 组主动移出购物车用户的平均价格很接近；但不同品牌的 C/A 风险比差异明显，同价位下 `masura` 的主动流失风险高于 `runail`。
-- **时间会影响流失，但不能单独解释品牌差异。** 晚上 18 点到次日 4 点更容易流失，早上 6 点到 11 点更容易购买；但 `masura` 在上午的流失风险仍高于 `runail` 在晚上的流失风险，说明时间段不是唯一解释。
-- **补充 48 小时观察窗口后，主结论没有被推翻，但需要收紧口径。** 新口径下 B 组占比上升，A/C 占比下降；固定 `C/A >= 1.5` 风险阈值后，`runail`、`irisk` 仍偏健康，`masura`、`bluesky` 等仍偏高风险。
-- **建模部分最有价值的不是高分，而是识别了目标泄露。** 初版 Logistic Regression 的 ROC-AUC 达到 0.8428，但主要依赖 `session_remove_from_cart` 等事后字段；剔除泄露并只使用首次加购前行为后，ROC-AUC 降到 0.5773，说明真正可提前预测的信号还需要下沉到商品级行为。
+- **主分析对象是有效 `user_session × product_id` 的首次观测加购，不是“人数”。** 从 353.33 万条 2019 年 12 月事件中，得到 772,119 个能完整观察 48 小时的会话—商品样本。
+- **48 小时购买率为 13.56%，未明确处置率为 66.22%，移除率为 20.22%。** B 类占多数，因此不能只在 A/C 子样本中报告“明确结果购买率”40.14%。
+- **品牌榜只覆盖 55.99% 的样本。** 原始 `brand` 中大量字面值 `NaN` 已标准化为未知品牌，不再被误当作最大的真实品牌；品牌排序只能代表已知品牌子样本。
+- **品牌结论改为“运营排查优先级”，不是因果风险。** `grattol`、`masura`、`ingarden`、`pole`、`bluesky` 等同时具有较高覆盖量和较高移除/购买比，适合优先拆到 SKU 核查，而不能直接断言品牌导致流失。
+- **SQL 与 Python 共 25 项正式检查为 0 个错误。** 唯一警告是旧 48 小时 CSV 多出 369 个无效会话样本；旧版被保留为学习轨迹，不再作为正式数据源。
 
 ---
+
+## 正式口径
+
+| 项目 | 定义 |
+|---|---|
+| 主粒度 | 一个有效会话内一个商品的首次观测加购 |
+| 主窗口 | 首次观测加购后 48 小时，窗口必须完整 |
+| A | 48 小时内出现购买；购买优先 |
+| C | 48 小时内无购买，但出现移除 |
+| B | 48 小时内既未购买也未移除 |
+| 主购买率 | A/(A+B+C) |
+| 移除/购买比 | C/A；描述性运营信号，不是概率或因果风险 |
+| 时间解释 | 全部按 UTC；业务时区未知，不做早晚时段运营结论 |
+
+完整定义见：
+
+- [项目立项书](docs/project_charter.md)
+- [数据字典](docs/data_dictionary.md)
+- [指标字典](docs/metric_dictionary.md)
+- [成果清单与旧/正式版本说明](docs/artifact_inventory.md)
+- [逐项企业化优化记录](docs/optimization_log.md)
+- [环境与复现说明](docs/environment_and_reproduction.md)
+- [面试项目表达](docs/interview_story.md)
+- [14 天综合学习计划](docs/14_day_integrated_learning_plan.md)
+
+## 本轮企业化优化了什么
+
+| 原项目风险 | 正式处理 | 为什么 |
+|---|---|---|
+| 把 `user_id × product_id` 或其他粒度标成“人数” | 事件、用户、会话、会话—商品漏斗分层 | 防止分子分母和业务对象混乱 |
+| 旧 A/B/C 可能不是严格“加购后”结果 | 从首次观测加购重建 48 小时队列 | 消除事件顺序错误 |
+| `user_session="NaN"` 被当作同一会话或被 Pandas 静默丢组 | 作为无效会话键排除 | 防止跨用户串联和 SQL/Python漂移 |
+| `brand="NaN"` 被当作最大品牌 | 标准化为未知品牌并报告覆盖率 | 防止品牌榜严重失真 |
+| 品牌覆盖量只看 A+C | 改为 A+B+C，同时保留明确结果指标 | B 占 66%，不能从业务规模中消失 |
+| `C/A risk ratio` 容易被理解为风险概率 | 改名“移除/购买比” | 它只是比值，不是因果或概率 |
+| 固定 1.5 被当作行业标准 | 标为可调启发式筛选线 | 阈值需要未来按成本或历史基线校准 |
+| 月末和不同窗口分母变化 | 24/48/72 小时使用同一批 72 小时完整样本 | 避免截断造成伪差异 |
+| 缺少跨工具对账 | SQL 明细、Python 重新聚合和 Excel 同源 | 保证交付数字可追溯 |
+| 旧模型按行随机切分 | 正式交付不使用模型结论 | 同会话信息泄露且当前预测价值不足 |
+
+## 正式结果与交付物
+
+- 正式只读 SQL：[`sql/formal/`](sql/formal/README.md)
+- Python 执行与对账：[`scripts/run_formal_validation.py`](scripts/run_formal_validation.py)
+- 正式可执行 Notebook：[`notebooks/11_正式分析与验证.ipynb`](notebooks/11_正式分析与验证.ipynb)
+- 数据质量报告：[`reports/data_quality_report.md`](reports/data_quality_report.md)
+- 正式交付 QA：[`reports/delivery_qa_report.md`](reports/delivery_qa_report.md)
+- 管理层一页报告源：[`reports/management_onepager_source.md`](reports/management_onepager_source.md)
+- 可验证管理层报告快照：[`reports/management_report_artifact.json`](reports/management_report_artifact.json)
+- 正式图表：[`reports/formal_charts/`](reports/formal_charts/)
+- 正式 Excel：[`outputs/formal_delivery/eCommerce_brand_priority_formal.xlsx`](outputs/formal_delivery/eCommerce_brand_priority_formal.xlsx)
+- Power BI 两页实施规范：[`reports/power_bi_formal_spec.md`](reports/power_bi_formal_spec.md)
+- DAX 度量值：[`reports/power_bi_measures.dax`](reports/power_bi_measures.dax)
+
+`reports/first_brand.pbix` 和旧 Excel/Notebook/图表保留为练习版。当前本机无法发现 Power BI Desktop，因此没有伪造新的 PBIX；正式 CSV、页面设计和 DAX 已准备好。
+
+## 仓库整理结果与导航
+
+这次整理把项目分成三层，避免正式结果、历史练习和本机生成物混在一起：
+
+1. **正式链路**：`docs/`、`sql/formal/`、正式验证脚本、Notebook 11、正式报告、正式 Excel 和 Power BI 规范。面试、复现和业务结论以前述文件为准。
+2. **历史探索**：Notebook 01—10、旧 SQL、旧图表、练习 Excel 和第一版 PBIX。它们保留学习轨迹，但不再作为正式口径证据。
+3. **本机生成物**：原始数据、中间表、逐样本明细、依赖目录和 QA 预览。这些文件体积大或可重建，由 `.gitignore` 排除，不上传 GitHub。
+
+```text
+eCommerce_Events_History/
+├── data/                         # 本机数据；原始与中间数据默认不提交
+│   ├── raw/                      # Dec.csv 等原始数据
+│   ├── interim/                  # 探索/建模中间表
+│   └── processed/                # 可重建处理结果
+├── docs/                         # 立项、字典、优化记录、复现与学习计划
+├── notebooks/
+│   ├── 01—10                    # 历史探索与建模练习
+│   └── 11_正式分析与验证.ipynb  # 正式、可顺序运行的 Notebook
+├── sql/
+│   ├── 00—07                    # 历史探索 SQL
+│   └── formal/                  # 正式只读 SQL 00—06
+├── scripts/                      # SQL执行、Python对账、图表/报告/Notebook与QA
+├── reports/
+│   ├── data_exports/            # 小型正式汇总和对账证据
+│   ├── formal_charts/           # 正式图表
+│   ├── data_quality_report.md
+│   ├── management_onepager_source.md
+│   ├── power_bi_formal_spec.md
+│   └── power_bi_measures.dax
+├── outputs/formal_delivery/      # 正式 Excel；内部预览和检查快照不提交
+├── tools/excel_formal/           # Excel 生成逻辑；node_modules 不提交
+├── .env.example                  # 无密码的连接参数示例
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
+
+### Git 中保留与忽略的边界
+
+| 类型 | Git 策略 | 原因 |
+|---|---|---|
+| SQL、Python、Markdown、正式 Notebook | 提交 | 核心逻辑、口径和审计轨迹 |
+| 正式 Excel、小型汇总 CSV、正式图表 | 提交 | 便于直接查看结果和跨工具对账 |
+| `data/raw/`、`data/interim/`、`data/processed/` | 忽略 | 当前本机数据约 755 MB，可从原始来源或脚本重建 |
+| `cohort_detail_48h.csv` | 忽略 | 逐样本明细约 128 MB，超过 GitHub 普通单文件限制 |
+| `node_modules/` | 忽略 | 本机依赖超过 7,000 个文件，可重新安装或由运行环境提供 |
+| QA 预览、`.inspect.ndjson`、Office 锁文件 | 忽略 | 可重建的内部检查产物，不属于正式交付 |
+| `.env`、本机 AI/编辑器配置 | 忽略 | 避免凭据和个人环境进入仓库；只提交 `.env.example` |
+
+正式 Excel 已提交为可直接查看的交付物。`tools/excel_formal/build_excel.mjs` 使用 Codex 提供的电子表格运行时；普通 Python 环境无法直接执行它时，可使用已提交的正式 Excel，或从 `reports/data_exports/` 手工/Power Query 导入汇总数据。
+
+## 复现
+
+本项目在 `data-learning` Conda 环境（Python 3.13.7）中验证通过；`D:\conda-envs\data-learning\python.exe` 是作者本机路径，不是其他机器必须使用的固定路径。数据库密码不得写入仓库；连接参数从 PostgreSQL 本机默认认证或环境变量读取。
+
+```powershell
+python -m pip install -r requirements.txt
+python scripts\run_formal_validation.py
+python scripts\build_formal_artifacts.py
+python scripts\build_formal_notebook.py
+python -m jupyter nbconvert --execute --to notebook --inplace notebooks\11_正式分析与验证.ipynb
+python scripts\run_delivery_qa.py
+```
+
+正式 SQL 只读运行，不创建、更新或删除数据库对象。大表聚合在 PostgreSQL 完成，Python 只读取正式导出和必要中间表。
+
+---
+
+## 历史探索记录（旧口径，保留但不作为正式结论）
+
+以下内容记录项目早期的分析思路和学习过程。其中部分数字、时间段结论、品牌因果措辞和模型分数已被正式审计收紧；面试或展示时应以前面的正式口径和文件为准。
 
 ## 问题是什么？
 
@@ -348,6 +475,58 @@ A 组平均价格 5.06，C 组平均价格 5.34；中位数分别为 3.11 和 3.
 
 ---
 
+## Excel 与 Power BI 交付练习
+
+在完成品牌四象限分析后，我补充了一版 Excel 和 Power BI 交付练习，目标不是重新计算所有指标，而是把已经验证过的分析结果整理成业务方能阅读、筛选和复查的交付物。
+
+### 1. Excel：把分析结果整理成业务可读表
+
+Excel 文件：`reports/eCommerce_brand_quadrant_excel_practice.xlsx`
+
+这一版主要使用 `reports/11_brand_quadrant_matrix_window_48h.csv` 作为品牌汇总数据源，而不是直接导入原始事件明细。原因是原始事件表适合用 SQL/Python 做清洗和聚合，Excel 更适合作为轻量交付层，用来展示口径、补充业务标签、制作透视表和快速给业务方查看结果。
+
+Excel 中重点整理了三类内容：
+
+- 指标口径说明：明确 A/B/C 分组、明确结果购买率、C/A 风险比、品牌体量和分析粒度。
+- 品牌明细表：把 `brand_clean`、`ac_purchase_share`、`c_to_a_ratio` 等分析字段改成“品牌”“明确结果购买率”“C/A风险比”等业务可读字段，并补充风险等级和建议动作。
+- 品牌透视汇总：按品牌象限和风险等级汇总品牌数、购买样本数、移除样本数、明确结果样本数和风险指标。
+
+这一步的核心收获是：交付给业务方的表不应该只是“代码算出来的字段”，而应该包含清楚的口径、可读字段名、筛选条件、样本量提醒和可执行动作。
+
+### 2. Power BI：区分明细列和动态度量值
+
+Power BI 文件：`reports/first_brand.pbix`
+
+Power BI 第一版直接读取 Excel 中的 `02_品牌明细表`。这里不读取透视表或摘要页，因为 Power BI 的数据源应该是结构化明细表，而不是已经排版过的展示结果。
+
+在 Power BI 中重新建立核心度量值，而不是直接平均 Excel 里的比例字段：
+
+```DAX
+总购买样本数 = SUM(brand_summary[购买样本数])
+总移除样本数 = SUM(brand_summary[移除样本数])
+明确结果样本数 = SUM(brand_summary[明确结果样本数])
+明确结果购买率 = DIVIDE([总购买样本数], [明确结果样本数])
+C/A风险比 = DIVIDE([总移除样本数], [总购买样本数])
+品牌数 = DISTINCTCOUNT(brand_summary[品牌])
+```
+
+这里的关键认识是：Excel 表中的 `明确结果购买率` 和 `C/A风险比` 是单个品牌的行级指标；Power BI 看板中的 KPI 卡片和图表需要的是当前筛选条件下的整体指标。比如整体购买率不能用品牌购买率的简单平均，而应该用 `SUM(购买样本数) / SUM(明确结果样本数)`。
+
+因此，Power BI 的价值不是把 Excel 图表搬过去，而是让指标随着切片器动态变化：当筛选品牌象限、风险等级或某一类品牌时，卡片、柱状图和明细表都按同一套度量值重新计算。
+
+### 3. 对口径和交付的认识
+
+这次补充练习让我把“分析口径”和“交付口径”分开理解：
+
+- 分析口径解决的是：一行数据代表什么、样本范围是什么、指标怎么算、边界情况怎么处理。
+- 交付口径解决的是：业务方看到什么字段、如何筛选、哪些指标能汇总、哪些比例不能直接平均、样本量不足时要不要提醒。
+- Excel 适合做轻量交付、透视汇总和临时业务沟通；Power BI 更适合做可交互看板、切片器筛选和动态 KPI。
+- BI 看板里的核心指标应该优先用 Measure 定义，而不是依赖静态列的默认汇总。
+
+这部分不是新的业务结论，而是把同一套分析结果从“我能算出来”推进到“别人能看懂、能筛选、能用于讨论”。
+
+---
+
 ## 如果面试讲 10 分钟，可以这样讲
 
 1. **先讲问题**：我研究的是化妆品电商里用户加购后不购买的问题，希望找出流失原因和运营干预点。
@@ -361,7 +540,9 @@ A 组平均价格 5.06，C 组平均价格 5.34；中位数分别为 3.11 和 3.
 
 ---
 
-## 项目结构
+## 历史探索阶段的原始项目结构
+
+下面保留的是项目早期学习阶段的结构记录，用于说明分析过程；当前仓库导航和正式入口以前面的“仓库整理结果与导航”为准。
 
 ```text
 eCommerce_Events_History/
@@ -402,6 +583,8 @@ eCommerce_Events_History/
 │   ├── 07_brand_risk_ratio.png
 │   ├── 08_logistic_regression_results.png
 │   ├── 10_brand_quadrant_matrix.png
+│   ├── eCommerce_brand_quadrant_excel_practice.xlsx
+│   ├── first_brand.pbix
 │   └── user_funnel.html
 ├── scripts/
 │   ├── build_windowed_user_behavior_groups.py
@@ -439,6 +622,10 @@ eCommerce_Events_History/
 - 目标泄露检查
 - 固定观察窗口 cohort
 - 稳健性验证
+- Excel 交付表
+- Power BI 看板
+- DAX Measure
+- 动态筛选口径
 
 ---
 
@@ -465,6 +652,7 @@ eCommerce_Events_History/
 - 有图表和中间数据支撑。
 - 有业务建议。
 - 有对模型目标泄露的反思。
+- 有 Excel 和 Power BI 交付练习，能说明如何把分析结果整理成业务可读表和动态看板。
 - 有清楚的下一步改进方向。
 
 下一步最值得推进的是：围绕“首次加购商品”构造商品级 pre-cart 特征，把问题从“session 是否有购买倾向”推进到“用户对这个具体商品是否有足够购买意图”。

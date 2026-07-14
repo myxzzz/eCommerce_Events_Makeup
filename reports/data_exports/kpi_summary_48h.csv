@@ -1,0 +1,2 @@
+﻿cohort_count,purchase_count,unresolved_count,remove_count,distinct_users,distinct_sessions,distinct_products,distinct_known_brands,known_brand_rows,purchase_rate_pct,unresolved_rate_pct,remove_rate_pct,clear_purchase_rate_pct,remove_to_purchase_ratio,known_brand_coverage_pct
+772119,104696,511286,156137,81401,160918,35896,229,432294,13.5596,66.2185,20.2219,40.1391,1.4913,55.988

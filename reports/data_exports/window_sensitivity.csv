@@ -1,0 +1,4 @@
+﻿window_hours,common_cohort_count,purchase_count,unresolved_count,remove_count,purchase_rate_pct,unresolved_rate_pct,remove_rate_pct,clear_purchase_rate_pct,remove_to_purchase_ratio
+24,756116,102649,500869,152598,13.5758,66.2423,20.1818,40.2156,1.4866
+48,756116,102841,500087,153188,13.6012,66.1389,20.2599,40.1677,1.4896
+72,756116,102974,499656,153486,13.6188,66.0819,20.2993,40.1521,1.4905
